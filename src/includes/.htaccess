@@ -1,0 +1,9 @@
+# Prevent web access
+<Files *>
+order deny,allow
+deny from all
+</Files>
+
+<Files .htaccess>
+deny from all
+</Files>
