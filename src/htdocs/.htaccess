@@ -1,0 +1,61 @@
+Options -Multiviews
+
+# Friendly url directives
+RewriteEngine On
+
+# Remove the need for .php extension 
+RewriteCond %{REQUEST_FILENAME} !-d 
+RewriteCond %{REQUEST_FILENAME}\.php -f 
+RewriteRule ^(.*[^/])/?$ /$1.php [L,QSA]
+
+# Remove the need for .html extension 
+RewriteCond %{REQUEST_FILENAME} !-d 
+RewriteCond %{REQUEST_FILENAME}\.html -f 
+RewriteRule ^(.*[^/])/?$ /$1.html [L,QSA]
+
+# API rewrites
+# Format: /api/entity/action/?query_parameters
+# Example: /api/asset/list/?start=0&limit=10&sort=assetid&dir=asc&q=orange+retro+car
+RewriteRule ^api/([-_A-Za-z0-9\ ]*)/([-_A-Za-z0-9\ ]*)/?$  /api/index.php?entity=$1&action=$2 [QSA,NC,L]
+
+# Server Response Pages (use 404 for forbidden)
+ErrorDocument 403 /page_not_found
+ErrorDocument 404 /page_not_found
+ErrorDocument 500 /error
+
+<IfModule mod_speling.c>
+	CheckCaseOnly on
+	CheckSpelling on
+</IfModule>
+
+# Allow the maintenance page and associated css and images through
+<Files error.php>
+allow from all
+</Files>
+
+<Files maintenance.php>
+allow from all
+</Files>
+
+<Files page_not_found.php>
+allow from all
+</Files>
+
+<Files ~ "\.(css|gif|png|js|jpg)$">
+   allow from all
+</Files>
+
+# Start of Rules
+<Limit GET POST HEAD>
+order deny,allow
+deny from all
+allow from 127.0.0.1
+allow from 10.0.2.2
+allow from 92.239.128.104
+allow from 212.36.51.230
+allow from 51.148.139.112
+</Limit>
+
+##############################
+### END IP RANGE FILTERING ###
+##############################
