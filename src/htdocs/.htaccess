@@ -45,15 +45,12 @@ allow from all
    allow from all
 </Files>
 
-# Start of Rules
+# Start of IP Whitelist - add addresses that are permitted access (include the server)
 <Limit GET POST HEAD>
 order deny,allow
 deny from all
 allow from 127.0.0.1
 allow from 10.0.2.2
-allow from 92.239.128.104
-allow from 212.36.51.230
-allow from 51.148.139.112
 </Limit>
 
 ##############################
