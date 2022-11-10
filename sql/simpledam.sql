@@ -167,7 +167,7 @@ CREATE TABLE `simpledam_users` (
 --
 
 INSERT INTO `simpledam_users` (`userid`, `firstname`, `lastname`, `email`, `password`, `userroleid`, `lastlogindate`, `datecreated`, `datemodified`, `isdeleted`) VALUES
-(1, 'Example', 'User', 'mail@example.com', '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 1, NULL, '2022-08-15 15:18:05', '2022-08-15 15:18:05', 0),
+(1, 'Example', 'User', 'mail@example.com', '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 1, NULL, NULL, NULL, 0),
 (2, 'Admin', 'User', 'admin@example.com', '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 2, NULL, NULL, NULL, 0);
 
 -- --------------------------------------------------------
