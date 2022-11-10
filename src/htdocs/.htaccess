@@ -45,7 +45,11 @@ allow from all
    allow from all
 </Files>
 
-# Start of IP Whitelist - add addresses that are permitted access (include the server)
+################################
+### BEGIN IP RANGE FILTERING ###
+################################
+
+# Add addresses that are permitted access (include the server)
 <Limit GET POST HEAD>
 order deny,allow
 deny from all
