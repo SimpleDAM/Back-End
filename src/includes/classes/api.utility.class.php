@@ -407,7 +407,7 @@ class Utils extends ApiBaseController
 		}
 	
 		if ($error !== '') {
-			// Throw the Exception or exit // or whatever :)
+			// Throw the Exception
 			return array("error"=>-1,"description"=>$error);
 		}
 		// Everything is OK
@@ -425,7 +425,7 @@ class Utils extends ApiBaseController
 		$result = array();
 	   
 		for ($i = 0; $i < $length; $i++){
-			$result[] = '(' . ($i + 1)  . ')' . substr($trace[$i], strpos($trace[$i], ' ')); // Replace '#someNum' with '$i)', set the right ordering
+			$result[] = '(' . ($i + 1)  . ')' . substr($trace[$i], strpos($trace[$i], ' '));
 		}
 	   
 		return "\t" . implode(" ", $result);
