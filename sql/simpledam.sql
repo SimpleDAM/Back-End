@@ -5,7 +5,6 @@
 -- Host: localhost:3306
 -- Generation Time: Nov 09, 2022 at 06:12 PM
 -- Server version: 10.1.48-MariaDB-0+deb9u2
--- PHP Version: 5.6.40-57+0~20211119.60+debian9~1.gbp8a9bd1
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";

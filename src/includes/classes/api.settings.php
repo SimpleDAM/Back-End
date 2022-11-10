@@ -20,8 +20,8 @@ define("SITE_TITLE","SimpleDAM");
 
 // Database credentials
 define("DB_HOST", "localhost");
-define("DB_USERNAME", "dbusername");
-define("DB_PASSWORD", "dbpassword");
+define("DB_USERNAME", "your_db_username");
+define("DB_PASSWORD", "your_db_password");
 define("DB_DATABASE_NAME", "simpledam");
 define("DB_TABLE_PREFIX", "simpledam");
 define("TABLE_PREFIX",DB_TABLE_PREFIX."_");
