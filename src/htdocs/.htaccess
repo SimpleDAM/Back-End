@@ -44,19 +44,3 @@ allow from all
 <Files ~ "\.(css|gif|png|js|jpg)$">
    allow from all
 </Files>
-
-################################
-### BEGIN IP RANGE FILTERING ###
-################################
-
-# Add addresses that are permitted access (include the server)
-<Limit GET POST HEAD>
-order deny,allow
-deny from all
-allow from 127.0.0.1
-allow from 10.0.2.2
-</Limit>
-
-##############################
-### END IP RANGE FILTERING ###
-##############################
