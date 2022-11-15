@@ -49,12 +49,7 @@ define("THUMBNAIL_PATH",BASE_PATH."/thumbnail");
 define("IMPORT_PATH",BASE_PATH."/import");
 define("LOG_PATH",BASE_PATH."/logs");
 
-// Email, Logging & Miscellaneous Settings
-define("LOG_NOTIFY_EMAIL",array("mail@example.com"));
-define("DEFAULT_SENDER_NAME","SimpleDAM");
-define("NO_REPLY_EMAIL","noreply@example.com");
-define("ADMIN_EMAIL",array("admin@example.com"));
-
+// Logging & Miscellaneous Settings
 define("DEBUG",false);
 define("LOG_TO_FILE",true);
 define("API_LOGGING",true);
