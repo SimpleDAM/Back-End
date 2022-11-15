@@ -51,7 +51,7 @@ define("LOG_PATH",BASE_PATH."/logs");
 
 // Email, Logging & Miscellaneous Settings
 define("LOG_NOTIFY_EMAIL",array("mail@example.com"));
-define("DEFAULT_SENDER_NAME","Simple DAM");
+define("DEFAULT_SENDER_NAME","SimpleDAM");
 define("NO_REPLY_EMAIL","noreply@example.com");
 define("ADMIN_EMAIL",array("admin@example.com"));
 
