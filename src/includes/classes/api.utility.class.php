@@ -19,13 +19,13 @@ class Utils extends ApiBaseController
 {
 
 	// Regular log writer
-	public static function debug($message,$send_email=false){
+	public static function debug($message){
 	
 		if (DEBUG) {
 			echo($message."<br />");
 		}
 		if (LOG_TO_FILE) {
-			return (new self)->utils_prv_writelogentry($message,$send_email);
+			return (new self)->utils_prv_writelogentry($message);
 		}
 		return true;
 	}
@@ -39,7 +39,7 @@ class Utils extends ApiBaseController
 	}
 	
 	// Write a line to the debug log - should be a private method controlled by debug
-	private function utils_prv_writelogentry($message,$send_email=false){
+	private function utils_prv_writelogentry($message){
 		
 		$logname = $this->sanitize_title_with_dashes(SITE_TITLE);
 		$logfile = $logname."_log_".date("d_m_Y").".txt";
@@ -52,25 +52,6 @@ class Utils extends ApiBaseController
 		$currentFile = $parts[count($parts) - 2] ."/". $parts[count($parts) - 1];
 	
 		$the_string = (date('H:i:s'))."\t".$currentFile."\t".$_SERVER['REMOTE_ADDR']."\t".$message."\r\n"; 
-		
-		// Send email to admins if requested
-		if ($send_email){
-			
-			if (!function_exists("sendMailMultiple")){
-				include(INCLUDE_PATH."/mail.inc.php");
-			}
-			
-			$msg = "A log mail trigger occurred. The logged details are below:\n\n";
-			$msg .= $the_string;
-			$msg .= "\n\nTo view the full log, view the log file below.\n\n";
-			$msg .= "\n\n".LOG_PATH."/".$logfile."\n\n";
-		
-			$sender_name = DEFAULT_SENDER_NAME;
-			$sender_email = NO_REPLY_EMAIL;
-			$subject = SITE_TITLE." - System Log Report";
-			//sendMailMultiple(ADMIN_EMAIL, $sender_name, $sender_email, $subject, $msg);
-	
-		}
 		
 		if($fh = @fopen(LOG_PATH."/".$logfile, "a+") ){
 			fputs($fh, $the_string, strlen($the_string));
