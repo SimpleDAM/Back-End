@@ -23,12 +23,7 @@ ErrorDocument 403 /page_not_found
 ErrorDocument 404 /page_not_found
 ErrorDocument 500 /error
 
-<IfModule mod_speling.c>
-	CheckCaseOnly on
-	CheckSpelling on
-</IfModule>
-
-# Allow the maintenance page and associated css and images through
+# Allow maintenance/error page and associated css and images through
 <Files error.php>
 allow from all
 </Files>
