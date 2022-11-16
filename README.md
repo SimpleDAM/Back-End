@@ -48,4 +48,4 @@ When redirected to the entry point, the translated URL would appear as follows:
 
 `/api/index.php?entity=asset&action=list&start=0&limit=10&sort=assetid&dir=asc`
 
-Depending upon the server's operating system, developers may choose to implement these so-called pretty URLs using a different approach.  The above information is provided solely to demonstrate what the API entry point is expecting when using Apache and PHP.
+Depending upon the server's operating system, developers may choose to implement these so-called pretty URLs using a different approach.  The above information is provided solely to demonstrate what the API entry point is expecting when using Linux, Apache and PHP.
