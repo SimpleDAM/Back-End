@@ -39,7 +39,6 @@ define("SITE_URL","https://yourdomainname.com");
 define("BASE_PATH","/var/www/simpledam");
 define("SITE_PATH",$_SERVER['DOCUMENT_ROOT']); //htdocs
 define("INCLUDE_PATH",BASE_PATH."/includes");
-define("PLUGIN_PATH",INCLUDE_PATH."/plugins");
 define("API_PATH",SITE_PATH."/api");
 define("API_URL",SITE_URL."/api");
 define("ASSET_PATH",BASE_PATH."/assets");
@@ -55,7 +54,6 @@ define("LOG_TO_FILE",true);
 define("API_LOGGING",true);
 define("API_LOG_ACTIONS_TO_IGNORE",array("login","logout","checksession","preview","thumbnail","embed"));
 define("SESSION_DURATION",43200); // For API session tokens, not PHP's $_SESSION
-define("PLUGINS_ENABLED",true);
 define("IMPORT_ENABLED",false);
 
 // Pagination
