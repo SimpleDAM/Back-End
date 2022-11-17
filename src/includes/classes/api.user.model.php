@@ -151,7 +151,7 @@ class UserModel extends Database
     {
 		$params = [];
 		$params[] = [":userid", $userid];
-		$params[] = [":sessiontoken", $this->createGUIDv4()]; // md5(uniqid(microtime(), true))
+		$params[] = [":sessiontoken", $this->createGUIDv4()];
 		$params[] = [":sessiontimestamp", time()];
         return $this->insert("INSERT INTO ".SESSIONS." (userid,sessiontoken,sessiontimestamp) VALUES (:userid,:sessiontoken,:sessiontimestamp)", $params);
     }
