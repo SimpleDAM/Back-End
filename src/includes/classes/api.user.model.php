@@ -132,11 +132,11 @@ class UserModel extends Database
         return $this->select("SELECT userid,firstname,lastname,userroleid FROM ".USERS." WHERE email = :email AND password = :password LIMIT 1", $params);
     }
 	
-	public function logoutUser($userid)
+	public function logoutUser($sessiontoken)
     {
 		$params = [];
-		$params[] = [":userid", $userid];
-		return $this->delete("DELETE FROM ".SESSIONS." WHERE userid = :userid", $params);
+		$params[] = [":sessiontoken", $sessiontoken];
+		return $this->delete("DELETE FROM ".SESSIONS." WHERE sessiontoken = :sessiontoken", $params);
     }
 	
 	public function updateLastLoginDate($userid)

@@ -110,7 +110,7 @@ class UserController extends ApiBaseController
 		$eventdetails = $calling_username . " logged out";
 		$audit = $eventmodel->addEvent(2,$calling_userid,$eventdetails);
 		// And call the API logout method internally
-		$result = $usermodel->logoutUser($calling_userid);
+		$result = $usermodel->logoutUser($arrQueryStringParams['sessiontoken']);
 		if ($result){	
 			// Redirect to index page
 			header("Location: /?logout=1");
