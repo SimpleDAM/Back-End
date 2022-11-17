@@ -149,8 +149,6 @@ class UserModel extends Database
 	
 	public function createSession($userid)
     {
-		// First up, clear any stale sessions for this user
-		$this->clearStaleSessions($userid);
 		$params = [];
 		$params[] = [":userid", $userid];
 		$params[] = [":sessiontoken", $this->createGUIDv4()]; // md5(uniqid(microtime(), true))
