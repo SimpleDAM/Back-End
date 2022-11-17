@@ -167,7 +167,7 @@ class UserModel extends Database
     {
 		$params = [];
 		$params[] = [":sessiontoken", $sessiontoken];
-		$validsession = time() - SESSION_DURATION; // from api global settings	
+		$validsession = time() - SESSION_DURATION; // From api global settings	
 		
         return $this->select("SELECT ".SESSIONS.".*, firstname, lastname, userroleid FROM ".SESSIONS." LEFT JOIN ".USERS." ON ".SESSIONS.".userid = ".USERS.".userid WHERE sessiontoken = :sessiontoken AND sessiontimestamp > $validsession", $params);
     }
