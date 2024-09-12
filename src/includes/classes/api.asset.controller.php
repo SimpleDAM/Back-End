@@ -651,6 +651,11 @@ class AssetController extends ApiBaseController
 			$filename = $hash["hashid"].".".$extension;
 			$filepath = ASSET_PATH."/".$filename;
 
+			// Rewrite the Adobe Illustrator mimetype to avoid being served a PDF
+			if ($extension == "ai"){
+				$mimetype = "application/postscript";
+			}
+
 			if (file_exists($filepath)){
 			
 				$size = filesize($filepath);
@@ -662,7 +667,7 @@ class AssetController extends ApiBaseController
 				
 				// Send the headers
 				header('Content-Description: File Download');
-				header("Content-Type: ".mime_content_type($filepath));
+				header("Content-Type: ".$mimetype);
 				header("Content-Length: $size");
 				header("Content-Disposition: attachment; filename=\"$originalfilename\"");
 				header('Expires: 0');
@@ -907,12 +912,20 @@ class AssetController extends ApiBaseController
 				
 				// If we've been given a URL and it's valid
 				if ($isurl){
-					$tmp_file_name = basename($url); // File name
-					$tmp_file_ext = pathinfo($url, PATHINFO_EXTENSION); // Extension
-					$name2 = pathinfo($url, PATHINFO_FILENAME); // File name without extension
+					$url_file_name = basename($url); // File name - this may contain querystrings etc.
+					$url_parts = explode("?",$url_file_name);
+					$tmp_file_name = $url_parts[0]; // URL with no parameters
+					$tmp_file_ext = pathinfo($tmp_file_name, PATHINFO_EXTENSION); // Extension
+					$stated_ext = $tmp_file_ext;
 					// See if we can grab the file and put it into our temporary folder
 					if (file_put_contents(IMPORT_PATH."/".$tmp_file_name, file_get_contents($url)) !== false) {
 						if (file_exists(IMPORT_PATH."/".$tmp_file_name) && is_file(IMPORT_PATH."/".$tmp_file_name)){
+							if (empty($tmp_file_ext)){
+								$tmp_file_ext = Utils::mime2ext(mime_content_type(IMPORT_PATH."/".$tmp_file_name));
+								$stated_ext = $tmp_file_ext;
+								rename(IMPORT_PATH."/".$tmp_file_name, IMPORT_PATH."/".$tmp_file_name.".".$tmp_file_ext);
+								$tmp_file_name .= ".".$tmp_file_ext;
+							}
 							$input_file = IMPORT_PATH."/".$tmp_file_name;
 						} else {
 							// File wasn't written for some reason
@@ -925,6 +938,7 @@ class AssetController extends ApiBaseController
 				// Else we've got a direct upload	
 				} else {
 					$input_file = $_FILES['file']['tmp_name'];
+					$stated_ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
 				}
 				
 				// Do not trust $_FILES['file']['mime'] value - check MIME type manually
@@ -949,7 +963,10 @@ class AssetController extends ApiBaseController
 				// Create a unique name for the uploaded file
 				$original_filename = ($isurl) ? $tmp_file_name : $_FILES['file']['name'];
 				$hashed_basename = date('Ymd') . '_' . md5($original_filename . microtime());
-				$hashed_filename = $hashed_basename.".".$ext;
+				//$hashed_filename = $hashed_basename.".".$ext;
+				
+				$hashed_filename = ($stated_ext == "ai") ? $hashed_basename.".ai" : $hashed_basename.".".$ext;
+				
 				$hashed_previewname = $hashed_basename.".jpg"; // Previews are always jpeg
 				
 				// Store the file in the filesystem with the new hashed filename
@@ -966,7 +983,7 @@ class AssetController extends ApiBaseController
 				// At this point our file should be in-site, create a handle for it
 				$stored_file = ASSET_PATH."/".$hashed_filename;
 				
-				// Create thumbnail and preview - only if the input is an image format (jpg, gif, png, bmp)
+				// Create thumbnail and preview - only if the input is an image format (jpg, gif, png, bmp, pdf (and ai as pdf))
 				$type = explode('/', $mimetype)[0];
 				if (ENABLE_PREVIEW_GENERATION && in_array($ext,SUPPORTED_IMAGE_PREVIEW_TYPES)){
 				
@@ -1005,7 +1022,7 @@ class AssetController extends ApiBaseController
 					// Construct metadata manually
 					$metadata_ary = array(
 						"filename"=>$original_filename,
-						"extension"=>$ext,
+						"extension"=>($stated_ext == "ai") ? $stated_ext : $ext,
 						"mimetype"=>$mimetype,
 						"filesize"=>filesize($stored_file),
 						"fullwidth"=>NULL,
@@ -1261,12 +1278,20 @@ class AssetController extends ApiBaseController
 				
 				// If we've been given a URL and it's valid
 				if ($isurl){
-					$tmp_file_name = basename($url); // File name
-					$tmp_file_ext = pathinfo($url, PATHINFO_EXTENSION); // Extension
-					$name2 = pathinfo($url, PATHINFO_FILENAME); // File name without extension
+					$url_file_name = basename($url); // File name - this may contain querystrings etc.
+					$url_parts = explode("?",$url_file_name);
+					$tmp_file_name = $url_parts[0]; // URL with no parameters
+					$tmp_file_ext = pathinfo($tmp_file_name, PATHINFO_EXTENSION); // Extension
+					$stated_ext = $tmp_file_ext;
 					// See if we can grab the file and put it into our temporary folder
 					if (file_put_contents(IMPORT_PATH."/".$tmp_file_name, file_get_contents($url)) !== false) {
 						if (file_exists(IMPORT_PATH."/".$tmp_file_name) && is_file(IMPORT_PATH."/".$tmp_file_name)){
+							if (empty($tmp_file_ext)){
+								$tmp_file_ext = Utils::mime2ext(mime_content_type(IMPORT_PATH."/".$tmp_file_name));
+								$stated_ext = $tmp_file_ext;
+								rename(IMPORT_PATH."/".$tmp_file_name, IMPORT_PATH."/".$tmp_file_name.".".$tmp_file_ext);
+								$tmp_file_name .= ".".$tmp_file_ext;
+							}
 							$input_file = IMPORT_PATH."/".$tmp_file_name;
 							$replacing_file = true;
 						} else {
@@ -1281,6 +1306,7 @@ class AssetController extends ApiBaseController
 				} else {
 					if ($replacing_file){
 						$input_file = $_FILES['file']['tmp_name'];
+						$stated_ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
 					}
 				}
 					
@@ -1308,7 +1334,10 @@ class AssetController extends ApiBaseController
 					// Create a unique name for the uploaded file
 					$original_filename = ($isurl) ? $tmp_file_name : $_FILES['file']['name'];
 					$hashed_basename = date('Ymd') . '_' . md5($original_filename . microtime());
-					$hashed_filename = $hashed_basename.".".$ext;
+					//$hashed_filename = $hashed_basename.".".$ext;
+					
+					$hashed_filename = ($stated_ext == "ai") ? $hashed_basename.".ai" : $hashed_basename.".".$ext;
+					
 					$hashed_previewname = $hashed_basename.".jpg"; // Previews are always jpegs
 					
 					// Store the file in the filesystem with the new hashed filename
@@ -1361,7 +1390,8 @@ class AssetController extends ApiBaseController
 						// Force essential metadata fields such as filename, extension and mimetype with derived values
 						if ($replacing_file){
 							$metadata_ary["filename"] = $original_filename;
-							$metadata_ary["extension"] = $ext;
+							//$metadata_ary["extension"] = $ext;
+							$metadata_ary["extension"] = ($stated_ext == "ai") ? $stated_ext : $ext;
 							$metadata_ary["mimetype"] = $mimetype;
 							$metadata_ary["filesize"] = filesize($stored_file);
 							// Reset these (they're processed again below)
@@ -1391,7 +1421,8 @@ class AssetController extends ApiBaseController
 					if ($replacing_file){
 						$metadata_ary = array(
 							"filename"=>$original_filename,
-							"extension"=>$ext,
+							//"extension"=>$ext,
+							"extension"=>($stated_ext == "ai") ? $stated_ext : $ext,
 							"mimetype"=>$mimetype,
 							"filesize"=>filesize($stored_file),
 							"fullwidth"=>NULL,
