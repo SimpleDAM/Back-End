@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -345,6 +345,15 @@ class Utils extends ApiBaseController
 		return ob_get_clean();
 	}
 	
+	// Strip deep slashes
+	public static function stripslashes_deep($value){
+		$value = is_array($value) ?
+					array_map('stripslashes_deep', $value) :
+					stripslashes($value);
+	
+		return $value;
+	}
+	
 	// Validate JSON
 	public static function json_validate($string){
 		// Decode the JSON data
@@ -388,7 +397,7 @@ class Utils extends ApiBaseController
 		}
 	
 		if ($error !== '') {
-			// Throw the Exception
+			// Throw the Exception or exit // or whatever :)
 			return array("error"=>-1,"description"=>$error);
 		}
 		// Everything is OK
@@ -406,12 +415,12 @@ class Utils extends ApiBaseController
 		$result = array();
 	   
 		for ($i = 0; $i < $length; $i++){
-			$result[] = '(' . ($i + 1)  . ')' . substr($trace[$i], strpos($trace[$i], ' '));
+			$result[] = '(' . ($i + 1)  . ')' . substr($trace[$i], strpos($trace[$i], ' ')); // Replace '#someNum' with '$i)', set the right ordering
 		}
 	   
 		return "\t" . implode(" ", $result);
 	}
-	
+
 	public static function mime2ext($mime) {
 		$mime_map = [
 			'video/3gpp2'                                                               => '3g2',

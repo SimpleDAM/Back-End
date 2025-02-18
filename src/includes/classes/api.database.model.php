@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -118,7 +118,7 @@ class Database
 		Utils::debug("ERROR:".$description);
 		$controller = new ApiBaseController();
 		$controller->sendOutput(
-			json_encode(array('error' => -1, 'description'=>"Database error. Check logs.")),
+			json_encode(array('error' => -1, 'description'=>"Database error. Check log for details.")),
 			array('Content-Type: application/json', 'HTTP/1.1 200 OK')
 		);
 	}

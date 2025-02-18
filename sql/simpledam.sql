@@ -3,8 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 09, 2022 at 06:12 PM
+-- Generation Time: Feb 17, 2025 at 11:26 PM
 -- Server version: 10.1.48-MariaDB-0+deb9u2
+-- PHP Version: 5.6.40-60+0~20220627.67+debian9~1.gbp1f7ffd
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -34,7 +35,7 @@ CREATE TABLE `simpledam_assets` (
   `datecreated` datetime NOT NULL,
   `datemodified` datetime NOT NULL,
   `isdeleted` tinyint(1) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table to storte original image references';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Table to store original references';
 
 --
 -- Dumping data for table `simpledam_assets`
@@ -68,7 +69,8 @@ INSERT INTO `simpledam_assets` (`assetid`, `publicassetid`, `hashid`, `metadata`
 (25, 'f6e1126cedebf23e1463aee73f9df08783640400', NULL, '{\"filename\":null,\"extension\":null,\"mimetype\":null,\"filesize\":0,\"fullwidth\":null,\"fullheight\":null,\"previewwidth\":null,\"previewheight\":null,\"extensions\":{\"simpledam\":{\"description\":\"Example Metadata-Only Asset\",\"uploader\":\"Example User\",\"views\":3,\"downloads\":0}}}', 1, '2022-10-10 16:06:31', '2022-10-10 16:16:10', 0),
 (26, '887309d048beef83ad3eabf2a79a64a389ab1c9f', '20221011_e5616feafe798773197f17f82a380bea', '{\"filename\":\"sample1.mp3\",\"extension\":\"mp3\",\"mimetype\":\"audio\\/mpeg\",\"filesize\":1954212,\"fullwidth\":null,\"fullheight\":null,\"previewwidth\":null,\"previewheight\":null,\"extensions\":{\"simpledam\":{\"description\":\"Example MP3 Audio File\",\"uploader\":\"Example User\",\"views\":0,\"downloads\":0}}}', 1, '2022-10-11 11:54:45', '2022-10-11 11:55:17', 0),
 (27, 'bc33ea4e26e5e1af1408321416956113a4658763', '20221011_f9882d198852186f839f15f5f0f10648', '{\"filename\":\"paul-steuber-rs11hu-bkTc-unsplash.jpg\",\"extension\":\"jpg\",\"mimetype\":\"image\\/jpeg\",\"filesize\":144355,\"fullwidth\":1920,\"fullheight\":1280,\"previewwidth\":350,\"previewheight\":233,\"extensions\":{\"simpledam\":{\"description\":\"Nike swoosh on front of a building\",\"uploader\":\"Example User\",\"views\":0,\"downloads\":0}}}', 1, '2022-10-11 11:55:57', '2022-10-11 11:56:22', 0),
-(28, '0a57cb53ba59c46fc4b692527a38a87c78d84028', '20221011_ee8d6b3e2438441b5caf26d70f1de9af', '{\"filename\":\"altinay-dinc-LluELtL5mK4-unsplash.jpg\",\"extension\":\"jpg\",\"mimetype\":\"image\\/jpeg\",\"filesize\":156303,\"fullwidth\":1920,\"fullheight\":2880,\"previewwidth\":233,\"previewheight\":350,\"extensions\":{\"simpledam\":{\"description\":\"Dramatic cloudy sky with moon\",\"uploader\":\"Example User\",\"views\":0,\"downloads\":0}}}', 1, '2022-10-11 11:58:45', '2022-10-24 15:20:01', 0);
+(28, '0a57cb53ba59c46fc4b692527a38a87c78d84028', '20221011_ee8d6b3e2438441b5caf26d70f1de9af', '{\"filename\":\"altinay-dinc-LluELtL5mK4-unsplash.jpg\",\"extension\":\"jpg\",\"mimetype\":\"image\\/jpeg\",\"filesize\":156303,\"fullwidth\":1920,\"fullheight\":2880,\"previewwidth\":233,\"previewheight\":350,\"extensions\":{\"simpledam\":{\"description\":\"Dramatic cloudy sky with moon\",\"uploader\":\"Example User\",\"views\":0,\"downloads\":0}}}', 1, '2022-10-11 11:58:45', '2022-10-24 15:20:01', 0),
+(29, '7719a1c782a1ba91c031a682a0a2f8658209adbf', '20240909_ce09c3d33fbb687e646dc02d67a5ddee', '{\"filename\":\"example-illustrator-file-cs3.ai\",\"extension\":\"ai\",\"mimetype\":\"application\\/pdf\",\"filesize\":125667,\"fullwidth\":null,\"fullheight\":null,\"previewwidth\":247,\"previewheight\":350,\"extensions\":{\"simpledam\":{\"description\":\"Example Illustrator file\",\"uploader\":\"Example User\",\"views\":0,\"downloads\":0}}}', 1, '2022-10-11 11:58:45', '2022-10-24 15:20:01', 0);
 
 -- --------------------------------------------------------
 
@@ -80,11 +82,13 @@ CREATE TABLE `simpledam_events` (
   `eventid` int(25) NOT NULL,
   `eventtypeid` tinyint(2) NOT NULL,
   `userid` smallint(3) NOT NULL,
-  `assetid` int(5) DEFAULT NULL,
+  `assetid` varchar(255) DEFAULT NULL,
   `eventip` varchar(50) DEFAULT NULL,
   `eventdetails` text NOT NULL,
   `apiurl` varchar(255) DEFAULT NULL,
   `apimethod` varchar(8) DEFAULT NULL,
+  `apirequest` text,
+  `apiresponse` mediumtext,
   `eventdate` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='General event/audit log';
 
@@ -105,30 +109,37 @@ CREATE TABLE `simpledam_event_types` (
 --
 
 INSERT INTO `simpledam_event_types` (`eventtypeid`, `eventtypename`, `isdeleted`) VALUES
-(1, 'log in', 0),
-(2, 'log out', 0),
-(3, 'get user', 0),
-(4, 'list users', 0),
-(5, 'add user', 0),
-(6, 'update user', 0),
-(7, 'get asset', 0),
-(8, 'list assets', 0),
-(9, 'download asset', 0),
-(10, 'export asset', 0),
-(11, 'import asset', 0),
-(12, 'add asset', 0),
-(13, 'add user role', 0),
-(14, 'update user role', 0),
-(15, 'upload asset', 0),
-(16, 'update asset', 0),
-(17, 'delete asset', 0),
-(18, 'delete user', 0),
-(19, 'delete user role', 0),
-(20, 'get event type', 0),
-(21, 'list event types', 0),
-(22, 'add event type', 0),
-(23, 'update event type', 0),
-(24, 'delete event type', 0);
+(1, 'user login', 0),
+(2, 'user logout', 0),
+(3, 'user get', 0),
+(4, 'user list', 0),
+(5, 'user add', 0),
+(6, 'user update', 0),
+(7, 'asset get', 0),
+(8, 'asset list', 0),
+(9, 'asset download', 0),
+(10, 'asset export', 0),
+(11, 'asset import', 0),
+(12, 'asset add', 0),
+(13, 'userrole add', 0),
+(14, 'userrole update', 0),
+(15, 'asset upload', 1),
+(16, 'asset update', 0),
+(17, 'asset delete', 0),
+(18, 'user delete', 0),
+(19, 'userrole delete', 0),
+(20, 'eventtype get', 0),
+(21, 'eventtype list', 0),
+(22, 'eventtype add', 0),
+(23, 'eventtype update', 0),
+(24, 'eventtype delete', 0),
+(25, 'event list', 0),
+(26, 'event get', 0),
+(27, 'userrole get', 0),
+(28, 'userrole list', 0),
+(29, 'asset thumbnail', 0),
+(30, 'asset preview', 0),
+(31, 'asset embed', 0);
 
 -- --------------------------------------------------------
 
@@ -238,7 +249,7 @@ ALTER TABLE `simpledam_user_roles`
 -- AUTO_INCREMENT for table `simpledam_assets`
 --
 ALTER TABLE `simpledam_assets`
-  MODIFY `assetid` int(25) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `assetid` int(25) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 --
 -- AUTO_INCREMENT for table `simpledam_events`
 --
@@ -248,7 +259,7 @@ ALTER TABLE `simpledam_events`
 -- AUTO_INCREMENT for table `simpledam_event_types`
 --
 ALTER TABLE `simpledam_event_types`
-  MODIFY `eventtypeid` int(1) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `eventtypeid` int(1) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 --
 -- AUTO_INCREMENT for table `simpledam_sessions`
 --
@@ -258,7 +269,7 @@ ALTER TABLE `simpledam_sessions`
 -- AUTO_INCREMENT for table `simpledam_users`
 --
 ALTER TABLE `simpledam_users`
-  MODIFY `userid` int(25) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `userid` int(25) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 --
 -- AUTO_INCREMENT for table `simpledam_user_roles`
 --

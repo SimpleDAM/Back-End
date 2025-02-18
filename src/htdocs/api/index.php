@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -16,7 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 /*
-This is the main entry point for the SimpleDAM API
+This is the main entry point for the Simple DAM API
 */
 
 // Uncomment the lines below to enable troubleshooting - should only be done in dev environments
@@ -51,9 +51,9 @@ require_once INCLUDE_PATH . "/classes/api.eventtype.model.php";
 
 // Whitelist of allowed entities and actions
 $allowed_entities = array("asset","category","tag","user","userrole","event","eventtype");
-$allowed_actions = array("get","list","add","upload","update","delete","login","logout","checksession","download","import","export","view","embed","preview","thumbnail");
+$allowed_actions = array("get","list","add","update","delete","login","logout","checksession","download","import","export","view","embed","preview","thumbnail");
 
-// Enumerate entity/action from URL (URLS are rewritten by the .htaccess file in htdocs/webroot)
+// Enumerate /entity/action from URL (URLS are rewritten by the .htaccess file in htdocs/webroot)
 $params = [];
 foreach($_GET as $key=>$val){
 	$params[$key] = stripslashes(strip_tags($val));
@@ -144,7 +144,7 @@ if ($params["entity"] == "eventtype"){
 	$controller = new EventTypeController();
 }
 
-// Construct parameters for API transaction log
+// Construct parameters for API transaction log (file-based)
 if (API_LOGGING && !in_array($params["action"],API_LOG_ACTIONS_TO_IGNORE)){
 	$log_params = "";
 	if ($_SERVER["REQUEST_METHOD"] == "POST"){

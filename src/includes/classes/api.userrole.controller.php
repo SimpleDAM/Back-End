@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -35,7 +35,9 @@ class UserRoleController extends ApiBaseController
 			// Get user for event audit
 			$usermodel = new UserModel();
 			$user = $usermodel->getUserFromSession($arrQueryStringParams['sessiontoken']);
-		
+			$calling_userid = $user[0]['userid'];
+			$calling_username = $user[0]['fullname'];
+			
 			// This is an admin only event - kick users out if they attempt this
 			if ($user[0]["userroleid"] < 2){
 				$this->sendOutput(json_encode(array('error' => -1,'description'=>'Insufficient Privileges')));
@@ -78,6 +80,7 @@ class UserRoleController extends ApiBaseController
 				$data = [];
 				$data["total"] = count($numUserRoles);
 				$data["userroles"] = $arr;
+				
             } catch (Error $e) {
 				$strErrorCode = -1;
                 $strErrorDesc = $e->getMessage().' Something went wrong! Please contact support.';
@@ -117,6 +120,8 @@ class UserRoleController extends ApiBaseController
 			// Get user for event audit
 			$usermodel = new UserModel();
 			$user = $usermodel->getUserFromSession($arrQueryStringParams['sessiontoken']);
+			$calling_userid = $user[0]['userid'];
+			$calling_username = $user[0]['fullname'];
 		
 			// This is an admin only event - prevent other users
 			if ($user[0]["userroleid"] < 2){
@@ -144,7 +149,7 @@ class UserRoleController extends ApiBaseController
 					$strErrorDesc = 'Event type not found';
             		$strErrorHeader = 'HTTP/1.1 200 OK';
 				} else {
-                	$data = $arr[0];
+                	$data = $arr[0];				
 				}
             } catch (Error $e) {
 				$strErrorCode = -1;
@@ -222,12 +227,7 @@ class UserRoleController extends ApiBaseController
         }
 		
 		// Send output
-        if (!$strErrorDesc) {
-			// Audit
-			$eventmodel = new EventModel();
-			$eventdetails = $calling_username . " added user role $userrolename";
-			$audit = $eventmodel->addEvent(13,$calling_userid,$eventdetails);
-			
+        if (!$strErrorDesc) {			
             $this->sendOutput(
 				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data)),
 				array('Content-Type: application/json', 'HTTP/1.1 200 OK')
@@ -279,10 +279,7 @@ class UserRoleController extends ApiBaseController
 					$strErrorDesc = 'Could not update user role';
             		$strErrorHeader = 'HTTP/1.1 200 OK';
 				} else {
-					$data["userroleid"] = $id;		
-					$eventmodel = new EventModel();
-					$eventdetails = $calling_username. " updated user role $userrolename (id: $id)";
-					$audit = $eventmodel->addEvent(14,$calling_userid,$eventdetails);
+					$data["userroleid"] = $id;
 				}
 				
             } catch (Error $e) {
@@ -366,11 +363,7 @@ class UserRoleController extends ApiBaseController
             $strErrorHeader = 'HTTP/1.1 200 OK';
         }
 		
-		if (!$strErrorDesc) {;
-			$eventmodel = new EventModel();
-			$eventdetails = $calling_username . " deleted user role id: $id";
-			$audit = $eventmodel->addEvent(19,$calling_userid,$eventdetails);
-			
+		if (!$strErrorDesc) {			
             $this->sendOutput(
 				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data)),
                 array('Content-Type: application/json', 'HTTP/1.1 200 OK')

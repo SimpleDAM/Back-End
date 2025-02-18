@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -56,10 +56,6 @@ class UserController extends ApiBaseController
 					if ($createSessionArray){
 						$sessionArray = $model->getLatestSession($userid);
 						if (count($sessionArray) > 0){
-							$eventmodel = new EventModel();
-							$username = $data["user"]["firstname"] . " " . $data["user"]["lastname"];
-							$eventdetails = $username. " logged in";
-							$audit = $eventmodel->addEvent(1,$userid,$eventdetails);
 							$data["session"] = $sessionArray[0];
 							// Update last login date
 							$update_login_date = $model->updateLastLoginDate($userid);
@@ -105,13 +101,11 @@ class UserController extends ApiBaseController
 		$calling_userid = $user[0]['userid'];
 		$calling_username = $user[0]['fullname'];
 
-		// Store audit event
-		$eventmodel = new EventModel();
-		$eventdetails = $calling_username . " logged out";
-		$audit = $eventmodel->addEvent(2,$calling_userid,$eventdetails);
+		$this->storeAPIAuditTrail();
+		
 		// And call the API logout method internally
 		$result = $usermodel->logoutUser($arrQueryStringParams['sessiontoken']);
-		if ($result){	
+		if ($result){
 			// Redirect to index page
 			header("Location: /?logout=1");
 			exit();
@@ -245,11 +239,6 @@ class UserController extends ApiBaseController
 				$data["total"] = count($numUsers);
 				$data["users"] = $arr;
 				
-				// Store audit event
-				$eventmodel = new EventModel();
-				$eventdetails = $calling_username . " listed users";
-				$audit = $eventmodel->addEvent(4,$calling_userid,$eventdetails);
-				
             } catch (Error $e) {
 				$strErrorCode = -1;
                 $strErrorDesc = $e->getMessage().' Something went wrong! Please contact support.';
@@ -328,11 +317,6 @@ class UserController extends ApiBaseController
 
         // Send output
         if (!$strErrorDesc) {
-		
-			// Store audit event
-			$eventmodel = new EventModel();
-			$eventdetails = $calling_username . " got user $id (".$arrUser[0]["email"].")";
-			$audit = $eventmodel->addEvent(3,$calling_userid,$eventdetails);
 			
             $this->sendOutput(
 				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data)),
@@ -429,11 +413,7 @@ class UserController extends ApiBaseController
 					$strErrorDesc = 'Could not add user';
             		$strErrorHeader = 'HTTP/1.1 200 OK';
 				} else {
-					// Store audit event
 					$data["userid"] = $result;
-					$eventmodel = new EventModel();
-					$eventdetails = $calling_username. " added new user '$firstname $lastname' ($email)";
-					$audit = $eventmodel->addEvent(5,$calling_userid,$eventdetails);
 				}
 				
             } catch (Error $e) {
@@ -561,10 +541,8 @@ class UserController extends ApiBaseController
 					$strErrorDesc = 'Could not update user';
             		$strErrorHeader = 'HTTP/1.1 200 OK';
 				} else {	
-					$data["userid"] = $id;				
-					$eventmodel = new EventModel();
-					$eventdetails = $calling_username. " updated $firstname $lastname (id: $id)";
-					$audit = $eventmodel->addEvent(6,$calling_userid,$eventdetails);
+					// Audit
+					$data["userid"] = $id;
 				}
 				
             } catch (Error $e) {
@@ -655,11 +633,8 @@ class UserController extends ApiBaseController
             $strErrorHeader = 'HTTP/1.1 200 OK';
         }
 		
-		if (!$strErrorDesc) {;
-			$eventmodel = new EventModel();
-			$eventdetails = $calling_username . " deleted user $deletedusername (id: $id)";
-			$audit = $eventmodel->addEvent(18,$calling_userid,$eventdetails);
-			
+		if (!$strErrorDesc) {
+					
             $this->sendOutput(
 				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data)),
                 array('Content-Type: application/json', 'HTTP/1.1 200 OK')

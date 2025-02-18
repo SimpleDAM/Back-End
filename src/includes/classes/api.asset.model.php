@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -25,7 +25,8 @@ class AssetModel extends Database
 		// If the provided sort field isn't supported
 		if (!in_array($sort,$allowed_sort_ary)){
 			// Uncomment the line below to return false and use the error condition in api.asset.controller.php (listAction)
-			//return false;
+			// Else this uses the api.database.model error
+			// return false;
 		}
 		
 		// Do filtering
@@ -117,10 +118,10 @@ class AssetModel extends Database
     }
 	
 	// This is called immediately after the asset is created
-	public function updatePublicAssetID($assetid)
+	public function updatePublicAssetID($assetid,$publicassetid)
      {
 		$params = [];
-		$params[] = [":publicassetid", sha1($assetid)];
+		$params[] = [":publicassetid", $publicassetid];
 		$params[] = [":assetid", $assetid];
         return $this->update("UPDATE ".ASSETS." SET publicassetid=:publicassetid WHERE assetid=:assetid", $params);
     }

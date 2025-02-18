@@ -52,9 +52,12 @@ define("LOG_PATH",BASE_PATH."/logs");
 define("DEBUG",false);
 define("LOG_TO_FILE",true);
 define("API_LOGGING",true);
-define("API_LOG_ACTIONS_TO_IGNORE",array("login","logout","checksession","preview","thumbnail","embed"));
+define("API_LOG_ACTIONS_TO_IGNORE",array("checksession"));
+define("API_LOG_ENTITIES_TO_IGNORE",array());
+define("API_LOG_ADMIN_AUDIT_ACTIONS",false);
+define("API_LOG_ADMIN_USER_ACTIONS",false);
 define("SESSION_DURATION",43200); // For API session tokens, not PHP's $_SESSION
-define("IMPORT_ENABLED",false);
+define("IMPORT_ENABLED",true);
 
 // Pagination
 define("DEFAULT_PER_PAGE",20);

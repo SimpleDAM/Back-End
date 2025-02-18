@@ -3,7 +3,7 @@ The files required to set up a back-end SimpleDAM API server using Linux, Apache
 
 **Developers should note that the back-end provided here is simply *one* implementation that delivers the necessary responses to fulfil the SimpleDAM protocol; providing you stick to the protocol and serve JSON back to clients, you are free to use whatever technology you choose.**
 
-For more information, please read [An Introduction to the SimpleDAM API Protocol](https://digitalassetmanagementnews.org/features/an-introduction-to-the-simpledam-api-protocol/) on the DAM News website.
+For more information, please read [An Introduction to the SimpleDAM API Protocol](https://ralphwindsor.com/dam-interoperability/an-introduction-to-the-simpledam-api-protocol/).
 ## Requirements
 - Linux type server running Apache (at least version 2)
 - PHP (7.4 or above)

@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -130,6 +130,7 @@ class EventTypeController extends ApiBaseController
             		$strErrorHeader = 'HTTP/1.1 200 OK';
 				} else {
                 	$data = $arr[0];
+					
 				}
             } catch (Error $e) {
 				$strErrorCode = -1;
@@ -194,9 +195,6 @@ class EventTypeController extends ApiBaseController
 					$strErrorHeader = 'HTTP/1.1 200 OK';
 				} else {
 					$data["eventtypeid"] = $result;
-					$eventmodel = new EventModel();
-					$eventdetails = $calling_username. " added new event type $eventtypename (id: $result)";
-					$audit = $eventmodel->addEvent(22,$calling_userid,$eventdetails);
 				}
 			} catch (Error $e) {
 				$strErrorCode = -1;
@@ -262,11 +260,8 @@ class EventTypeController extends ApiBaseController
 					$strErrorCode = -1;
 					$strErrorDesc = 'Could not update event type';
             		$strErrorHeader = 'HTTP/1.1 200 OK';
-				} else {					
-					$eventmodel = new EventModel();
+				} else {
 					$data["eventtypeid"] = $id;
-					$eventdetails = $calling_username. " updated event type $eventtypename (id: $id)";
-					$audit = $eventmodel->addEvent(23,$calling_userid,$eventdetails);
 				}
 				
             } catch (Error $e) {
@@ -350,11 +345,7 @@ class EventTypeController extends ApiBaseController
             $strErrorHeader = 'HTTP/1.1 200 OK';
         }
 		
-		if (!$strErrorDesc) {;
-			$eventmodel = new EventModel();
-			$eventdetails = $calling_username . " deleted event type id: $id";
-			$audit = $eventmodel->addEvent(24,$calling_userid,$eventdetails);
-			
+		if (!$strErrorDesc) {
             $this->sendOutput(
 				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data)),
                 array('Content-Type: application/json', 'HTTP/1.1 200 OK')

@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -31,10 +31,6 @@ class AssetController extends ApiBaseController
         $arrQueryStringParams = $this->getQueryStringParams();
 
         if (strtoupper($requestMethod) == 'GET') {
-			
-			// Get user for event audit
-			$usermodel = new UserModel();
-			$user = $usermodel->getUserFromSession($arrQueryStringParams['sessiontoken']);
 		
 			if (!isset($arrQueryStringParams['id']) || empty($arrQueryStringParams['id'])){
 				$this->sendOutput(json_encode(array('error' => -1,'description'=>'Parameter Missing')));
@@ -66,14 +62,14 @@ class AssetController extends ApiBaseController
 					
 					// Get the number of views for this assets via a discreet query
 					$asset["metadata"]["extensions"]["simpledam"]["views"] = 0;
-					$vw = $model->getNumViews($assetid);
+					$vw = $model->getNumViews($asset["assetid"]);
 					if (isset($vw[0]) && count($vw[0]) > 0){
 						$asset["metadata"]["extensions"]["simpledam"]["views"] = $vw[0]["total"];
 					}
 					
 					// Get the number of downloads for this assets via a discreet query
 					$asset["metadata"]["extensions"]["simpledam"]["downloads"] = 0;
-					$dl = $model->getNumDownloads($assetid);
+					$dl = $model->getNumDownloads($asset["assetid"]);
 					if (isset($dl[0]) && count($dl[0]) > 0){
 						$asset["metadata"]["extensions"]["simpledam"]["downloads"] = $dl[0]["total"];
 					}
@@ -92,11 +88,6 @@ class AssetController extends ApiBaseController
 
         // Send output
         if (!$strErrorDesc) {
-		
-			//Audit
-			$eventmodel = new EventModel();
-			$eventdetails = $user[0]['fullname'] . " got asset $assetid";
-			$audit = $eventmodel->addEvent(7,$user[0]['userid'],$eventdetails,$assetid);
 			
             $this->sendOutput(
 				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$asset),JSON_UNESCAPED_SLASHES),
@@ -121,12 +112,9 @@ class AssetController extends ApiBaseController
         $requestMethod = $_SERVER["REQUEST_METHOD"];
         $arrQueryStringParams = $this->getQueryStringParams();
 		$filters = [];
+		$allowed_sort_ary = array("assetid", "userid", "datecreated", "datemodified");
 
         if (strtoupper($requestMethod) == 'GET') {
-		
-			// Get user for event audit
-			$usermodel = new UserModel();
-			$user = $usermodel->getUserFromSession($arrQueryStringParams['sessiontoken']);
 			
             try {
                 $model = new AssetModel();
@@ -148,71 +136,78 @@ class AssetController extends ApiBaseController
 				// Allow use of id - translate to assetid
 				$intSort = ($intSort == "id") ? "assetid" : $intSort;
 				
-				$intDir = "desc";
-                if (isset($arrQueryStringParams['dir']) && $arrQueryStringParams['dir']) {
-                    $intDir = $arrQueryStringParams['dir'];
-                }
-				// keyword
-				if (isset($arrQueryStringParams['q']) && $arrQueryStringParams['q']) {
-                    $filters["q"] = $arrQueryStringParams['q'];
-                }
-				// tags (not used)
-				if (isset($arrQueryStringParams['t']) && $arrQueryStringParams['t']) {
-                    $filters["t"] = $arrQueryStringParams['t'];
-                }
+				if (!in_array($intSort,$allowed_sort_ary)){
+					$strErrorCode = -1;
+					$strErrorDesc = 'Sort field not supported.';
+					$strErrorHeader = 'HTTP/1.1 200 OK';
+				} else {
 				
-				// source of assets (not used)
-				if (isset($arrQueryStringParams['source']) && $arrQueryStringParams['source']) {
-                    $filters["source"] = $arrQueryStringParams['source'];
-                }
-				
-				// Add other filters (not currently supported)
-				foreach($arrQueryStringParams as $key=>$value){
-					if (!array_key_exists($key,$filters) && $key != "start" && $key != "limit" && $key != "sort" && $key != "dir" && $key != "sessiontoken" && $key != "entity" && $key != "action" && $key != "sessiontoken"){
-						$filters["$key"] = $value;
+					$intDir = "desc";
+					if (isset($arrQueryStringParams['dir']) && $arrQueryStringParams['dir']) {
+						$intDir = $arrQueryStringParams['dir'];
 					}
-				}
+					// keyword
+					if (isset($arrQueryStringParams['q']) && $arrQueryStringParams['q']) {
+						$filters["q"] = $arrQueryStringParams['q'];
+					}
+					// tags (not used)
+					if (isset($arrQueryStringParams['t']) && $arrQueryStringParams['t']) {
+						$filters["t"] = $arrQueryStringParams['t'];
+					}
+					
+					// source of assets (not used)
+					if (isset($arrQueryStringParams['source']) && $arrQueryStringParams['source']) {
+						$filters["source"] = $arrQueryStringParams['source'];
+					}
+					
+					// Add other filters (not currently supported)
+					foreach($arrQueryStringParams as $key=>$value){
+						if (!array_key_exists($key,$filters) && $key != "start" && $key != "limit" && $key != "sort" && $key != "dir" && $key != "sessiontoken" && $key != "entity" && $key != "action" && $key != "sessiontoken"){
+							$filters["$key"] = $value;
+						}
+					}
+							
+					// Get total amount of assets
+					$numAssets = $model->listAssets($intStart,$intLimit,$intSort,$intDir,$filters,true);
+					// Get the actual assets
+					$arrAssets = $model->listAssets($intStart,$intLimit,$intSort,$intDir,$filters);
+					
+					// If the query failed (this is overwritten by api.database.model.php error trapping - to enable the below error, see listAssets function in api.asset.model.php)
+					if (!$numAssets || !$arrAssets){
+						//$this->sendOutput(json_encode(array('error' => -1,'description'=>'There was a problem retrieving the assets')));
+					}
+					
+					// Format or adjust the object here, prior to JSON output
+					$data = [];
+					$data["total"] = count($numAssets);
+					$data["assets"] = [];
+					foreach($arrAssets as $asset){
 						
-				// Get total amount of assets
-				$numAssets = $model->listAssets($intStart,$intLimit,$intSort,$intDir,$filters,true);
-				// Get the actual assets
-				$arrAssets = $model->listAssets($intStart,$intLimit,$intSort,$intDir,$filters);
-				
-				// If the query failed (this is overwritten by api.database.model.php error trapping - to enable the below error, see listAssets function in api.asset.model.php)
-				if (!$numAssets || !$arrAssets){
-					//$this->sendOutput(json_encode(array('error' => -1,'description'=>'There was a problem retrieving the assets')));
-				}
-				
-				// Format or adjust the object here, prior to JSON output
-				$data = [];
-				$data["total"] = count($numAssets);
-				$data["assets"] = [];
-				foreach($arrAssets as $asset){
+						// Strip out \u0000 characters from JSON (before converting to an array)
+						$asset["metadata"] = str_replace("\\u0000", "", $asset["metadata"]);
+						// Convert metadata JSON string to an array
+						$asset["metadata"] = json_decode($asset["metadata"], true);
+						
+						// Do not expose the actual asset id via the API response
+						$asset["assetid"] = $asset["publicassetid"];
+						unset($asset["publicassetid"]);
+						
+						// Get the number of views for this assets via a discreet query
+						$asset["metadata"]["extensions"]["simpledam"]["views"] = 0;
+						$vw = $model->getNumViews($asset["assetid"]);
+						if (isset($vw[0]) && count($vw[0]) > 0){
+							$asset["metadata"]["extensions"]["simpledam"]["views"] = $vw[0]["total"];
+						}
 					
-					// Strip out \u0000 characters from JSON (before converting to an array)
-					$asset["metadata"] = str_replace("\\u0000", "", $asset["metadata"]);
-					// Convert metadata JSON string to an array
-					$asset["metadata"] = json_decode($asset["metadata"], true);
-					
-					// Get the number of views for this assets via a discreet query
-					$asset["metadata"]["extensions"]["simpledam"]["views"] = 0;
-					$vw = $model->getNumViews($asset["assetid"]);
-					if (isset($vw[0]) && count($vw[0]) > 0){
-						$asset["metadata"]["extensions"]["simpledam"]["views"] = $vw[0]["total"];
+						// Get the number of downloads for this assets via a discreet query
+						$asset["metadata"]["extensions"]["simpledam"]["downloads"] = 0;
+						$dl = $model->getNumDownloads($asset["assetid"]);
+						if (isset($dl[0]) && count($dl[0]) > 0){
+							$asset["metadata"]["extensions"]["simpledam"]["downloads"] = $dl[0]["total"];
+						}		
+	
+						$data["assets"][] = $asset;
 					}
-				
-					// Get the number of downloads for this assets via a discreet query
-					$asset["metadata"]["extensions"]["simpledam"]["downloads"] = 0;
-					$dl = $model->getNumDownloads($asset["assetid"]);
-					if (isset($dl[0]) && count($dl[0]) > 0){
-						$asset["metadata"]["extensions"]["simpledam"]["downloads"] = $dl[0]["total"];
-					}
-					
-					// Do not expose the actual asset id via the API response
-					$asset["assetid"] = $asset["publicassetid"];
-					unset($asset["publicassetid"]);			
-
-					$data["assets"][] = $asset;
 				}
             } catch (Error $e) {
 				$strErrorCode = -1;
@@ -227,14 +222,9 @@ class AssetController extends ApiBaseController
 
         // Send output
         if (!$strErrorDesc) {
-			
-			// Audit
-			$eventmodel = new EventModel();
-			$eventdetails = $user[0]['fullname'] . " listed assets";
-			$audit = $eventmodel->addEvent(8,$user[0]['userid'],$eventdetails);
 				
             $this->sendOutput(
-				json_encode(array('error' => $strErrorCode, 'description'=>'success','data'=>$data),JSON_UNESCAPED_SLASHES),
+				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data),JSON_UNESCAPED_SLASHES),
                 array('Content-Type: application/json', 'HTTP/1.1 200 OK')
             );
         } else {
@@ -337,8 +327,13 @@ class AssetController extends ApiBaseController
 
         // Render out image with mimetype header
         if (!$strErrorDesc) {			
-			header("Content-Type: ".mime_content_type($thumbnailpath));
-			readfile($thumbnailpath);
+			//header("Content-Type: ".mime_content_type($thumbnailpath));
+			//readfile($thumbnailpath);
+			$mimetype = mime_content_type($thumbnailpath);
+			$this->sendOutput(json_encode(array('error' => $strErrorCode,'description'=>'success')), 
+				array("Content-Type: $mimetype"),$thumbnailpath
+			);
+			
         } else {
             $this->sendOutput(json_encode(array('error' => $strErrorCode,'description'=>$strErrorDesc)), 
                 array('Content-Type: application/json', $strErrorHeader)
@@ -439,8 +434,12 @@ class AssetController extends ApiBaseController
 
         // Render out image with mimetype header
         if (!$strErrorDesc) {			
-            header("Content-Type: ".mime_content_type($previewpath));
-			readfile($previewpath);
+            // header("Content-Type: ".mime_content_type($previewpath));
+			//readfile($previewpath);
+			$mimetype = mime_content_type($previewpath);
+			$this->sendOutput(json_encode(array('error' => $strErrorCode,'description'=>'success')), 
+				array("Content-Type: $mimetype"),$previewpath
+			);
         } else {
             $this->sendOutput(json_encode(array('error' => $strErrorCode,'description'=>$strErrorDesc)), 
                 array('Content-Type: application/json', $strErrorHeader)
@@ -564,8 +563,11 @@ class AssetController extends ApiBaseController
 
         // Render out asset with mimetype header
         if (!$strErrorDesc) {			
-            header("Content-Type: ".$mimetype);
-			readfile($assetpath);
+            //header("Content-Type: ".$mimetype);
+			//readfile($assetpath);
+			$this->sendOutput(json_encode(array('error' => $strErrorCode,'description'=>'success')), 
+				array("Content-Type: $mimetype"),$assetpath
+			);
         } else {
             $this->sendOutput(json_encode(array('error' => $strErrorCode,'description'=>$strErrorDesc)), 
                 array('Content-Type: application/json', $strErrorHeader)
@@ -660,23 +662,10 @@ class AssetController extends ApiBaseController
 			
 				$size = filesize($filepath);
 				
-				// Audit
-				$eventmodel = new EventModel();
-				$eventdetails = $calling_username ." downloaded asset $assetid (".basename($filepath).")";
-				$audit = $eventmodel->addEvent(9,$calling_userid,$eventdetails,$assetid);
-				
-				// Send the headers
-				header('Content-Description: File Download');
-				header("Content-Type: ".$mimetype);
-				header("Content-Length: $size");
-				header("Content-Disposition: attachment; filename=\"$originalfilename\"");
-				header('Expires: 0');
-				header('Cache-Control: must-revalidate');
-				header('Pragma: public');
-				
-				session_write_close();
-				readfile($filepath);
-				exit();
+				// The sendOutput call below has an additional 'true' parameter to denote this is a download
+				$this->sendOutput(json_encode(array('error' => $strErrorCode,'description'=>'success')), 
+					array('Content-Description: File Download',"Content-Type: $mimetype","Content-Length: $size","Content-Disposition: attachment; filename=\"$originalfilename\"",'Expires: 0','Cache-Control: must-revalidate','Pragma: public'),$filepath
+				);
 			} else {
 				$strErrorCode = -1;
 				$strErrorDesc = "The asset file could not be found on the server. Please try again.";
@@ -688,9 +677,8 @@ class AssetController extends ApiBaseController
         }
 	}
 	
-
 	/**
-     * Create a metadata-only asset (i.e. no file)
+     * Add an asset (empty, file or URL) - updateAction is now deprecated
 	 * Endpoint: /api/asset/add
      */
 	public function addAction(){
@@ -701,136 +689,8 @@ class AssetController extends ApiBaseController
 		$arrPostParams = $this->getPostParams();
 		$data = [];
 		$metadata = NULL;
-		
-		// POST method
-		if (strtoupper($requestMethod) == 'POST') {
-		
-			// Get user for event audit
-			$usermodel = new UserModel();
-			$user = $usermodel->getUserFromSession($arrPostParams['sessiontoken']);
-			$calling_userid = $user[0]['userid'];
-			$calling_username = $user[0]['fullname'];
-		
-			// This is an admin only event - kick users out if they attempt this
-			if ($user[0]["userroleid"] < 2){
-				$this->sendOutput(json_encode(array('error' => -1,'description'=>'Insufficient Privileges')));
-			}
-			
-            try {
-
-				// Check if metadata has been posted
-				if (isset($arrPostParams['metadata']) && !empty($arrPostParams['metadata'])) {
-                    $metadata = $arrPostParams['metadata'];
-					$json_valid = Utils::json_validate($metadata);
-					if ($json_valid["error"] < 0){
-						$this->sendOutput(json_encode(array('error' => -1,'description'=>$json_valid["description"])));
-					} else {
-						$metadata_ary = json_decode($metadata,true);
-						// Overwrite essential metadata fields such as filename, extension and mimetype with empty values
-						$metadata_ary["filename"] = NULL;
-						$metadata_ary["extension"] = NULL;
-						$metadata_ary["mimetype"] = NULL;
-						$metadata_ary["filesize"] = 0;
-					}
-                } else {
-					// Construct metadata manually
-					$metadata_ary = array(
-						"filename"=>NULL,
-						"extension"=>NULL,
-						"mimetype"=>NULL,
-						"filesize"=>0,
-						"fullwidth"=>NULL,
-						"fullheight"=>NULL,
-						"previewwidth"=>NULL,
-						"previewheight"=>NULL
-					);
-				}
-				
-				// Create metadata extension object if it wasn't POSTed
-				if (!array_key_exists("extensions",$metadata_ary)){
-					$extensions = new stdClass;
-					$extensions->simpledam = new stdClass;
-				} else {
-					// Convert the decoded extensions JSON array that was POSTed to an object
-					$extensions = (object) $metadata_ary["extensions"];
-				}
-				// Create metadata SimpleDAM extension object if it wasn't POSTed
-				if (!isset($metadata_ary["extensions"]["simpledam"])){
-					$extensions->simpledam = new stdClass;
-				}
-				
-				// Put description in metadata node
-				if (!isset($metadata_ary["extensions"]["simpledam"]["description"])){
-					$extensions->simpledam->description = "Default description here";
-				}
-				
-				// Add default values to SimpleDAM metadata extension
-				$extensions->simpledam->uploader = $calling_username;
-				$extensions->simpledam->views = 0;
-				$extensions->simpledam->downloads = 0;
-				$metadata_ary["extensions"] = $extensions;
-
-				// Convert to JSON string for database storage
-				$metadata = json_encode($metadata_ary);
-				// Perform the insert	
-				$model = new AssetModel();
-				$result = $model->addAsset($calling_userid,NULL,$metadata);
-				
-				// Error
-				if (!$result){
-					$strErrorCode = -1;
-					$strErrorDesc = 'Could not add asset. Check logs.';
-				} else {
-					$assetid = $result;
-					// Do not expose the actual asset id via the API response
-					$data["assetid"] = sha1($result);
-					
-					// We now need to update the publicassetid (hash), derived from the assetid of the inserted record
-					$result2 = $model->updatePublicAssetID($assetid);
-					
-				}
-			} catch (Error $e) {
-				$strErrorCode = -1;
-				$strErrorDesc = $e->getMessage().' Something went wrong! Please contact support.';
-				$strErrorHeader = 'HTTP/1.1 200 OK';
-			}
-		} else {
-			$strErrorCode = -1;
-            $strErrorDesc = 'Method not supported';
-            $strErrorHeader = 'HTTP/1.1 200 OK';
-        }
-		
-		if (!$strErrorDesc) {
-			// Audit
-			$eventmodel = new EventModel();
-			$eventdetails = $calling_username . " added asset id: ".$assetid;
-			$audit = $eventmodel->addEvent(12,$calling_userid,$eventdetails);
-			
-            $this->sendOutput(
-				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data),JSON_UNESCAPED_SLASHES),
-                array('Content-Type: application/json', 'HTTP/1.1 200 OK')
-            );
-        } else {
-            $this->sendOutput(json_encode(array('error' => $strErrorCode,'description'=>$strErrorDesc)), 
-                array('Content-Type: application/json', $strErrorHeader)
-            );
-        }
-		
-	}
-	
-	/**
-     * Upload an asset (file or URL)
-	 * Endpoint: /api/asset/upload
-     */
-	public function uploadAction(){
-	
-		$strErrorDesc = '';
-		$strErrorCode = 0;
-        $requestMethod = $_SERVER["REQUEST_METHOD"];
-		$arrPostParams = $this->getPostParams();
-		$data = [];
-		$metadata = NULL;
 		$isurl = false;
+		$isupload = false;
 		$url = '';
 		
 		// POST method
@@ -841,7 +701,7 @@ class AssetController extends ApiBaseController
 			$user = $usermodel->getUserFromSession($arrPostParams['sessiontoken']);
 			$calling_userid = $user[0]['userid'];
 			$calling_username = $user[0]['fullname'];
-		
+			
 			// This is an admin only event - kick users out if they attempt this
 			if ($user[0]["userroleid"] < 2){
 				$this->sendOutput(json_encode(array('error' => -1,'description'=>'Insufficient Privileges')));
@@ -858,8 +718,12 @@ class AssetController extends ApiBaseController
 					$isurl = true;
 				}
 				
+				if (isset($_FILES['file']['tmp_name']) && is_uploaded_file($_FILES['file']['tmp_name'])) {
+					$isupload = true;
+				}
+				
 				// Check the FILE upload for validity
-				if (!$isurl){
+				if (!isupload){
 					
 					if (!isset($_FILES['file']['error']) || is_array($_FILES['file']['error'])){
 						$this->sendOutput(json_encode(array('error' => -1,'description'=>"Upload error. Please try again.")));
@@ -935,69 +799,75 @@ class AssetController extends ApiBaseController
 						// File could not be fetched from URL
 						$this->sendOutput(json_encode(array('error' => -1,'description'=>'Could not fetch file from URL')));
 					}
-				// Else we've got a direct upload	
-				} else {
+				}
+				
+				// Have we got a direct upload?
+				if ($isupload) {
 					$input_file = $_FILES['file']['tmp_name'];
 					$stated_ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
 				}
 				
-				// Do not trust $_FILES['file']['mime'] value - check MIME type manually
-				$finfo = new finfo(FILEINFO_MIME_TYPE);
-				if (false === $ext = array_search(
-					$finfo->file($input_file),
-					ALLOWED_MIME_TYPES,
-					true
-				)) {
-					$strErrorDesc = 'The file type is not supported ('.mime_content_type($input_file).')';
-					$this->sendOutput(json_encode(array('error' => -1,'description'=>$strErrorDesc)));
-				}
+				// Only perform below if we have either a URL or upload
+				if ($isurl || $isupload){
 				
-				// Suffix wasn't derived from detected mime type, bail out
-				if (!$ext){
-					$strErrorDesc = 'The file type is not supported';
-					$this->sendOutput(json_encode(array('error' => -1,'description'=>$strErrorDesc)));
-				}
-				
-				$mimetype = $finfo->file($input_file);
-				
-				// Create a unique name for the uploaded file
-				$original_filename = ($isurl) ? $tmp_file_name : $_FILES['file']['name'];
-				$hashed_basename = date('Ymd') . '_' . md5($original_filename . microtime());
-				//$hashed_filename = $hashed_basename.".".$ext;
-				
-				$hashed_filename = ($stated_ext == "ai") ? $hashed_basename.".ai" : $hashed_basename.".".$ext;
-				
-				$hashed_previewname = $hashed_basename.".jpg"; // Previews are always jpeg
-				
-				// Store the file in the filesystem with the new hashed filename
-				if ($isurl){
-					if (!rename($input_file,ASSET_PATH."/".$hashed_filename)){
-						$this->sendOutput(json_encode(array('error' => -1,'description'=>"Could not copy file")));
-					}
-				} else {
-					if (!move_uploaded_file($input_file,ASSET_PATH."/".$hashed_filename)) {
-						$this->sendOutput(json_encode(array('error' => -1,'description'=>"Could not move uploaded file")));
-					}
-				}
-				
-				// At this point our file should be in-site, create a handle for it
-				$stored_file = ASSET_PATH."/".$hashed_filename;
-				
-				// Create thumbnail and preview - only if the input is an image format (jpg, gif, png, bmp, pdf (and ai as pdf))
-				$type = explode('/', $mimetype)[0];
-				if (ENABLE_PREVIEW_GENERATION && in_array($ext,SUPPORTED_IMAGE_PREVIEW_TYPES)){
-				
-					if(!Utils::create_preview_image($stored_file,PREVIEW_PATH."/".$hashed_previewname,PREVIEW_SIZE)){
-						$errors = true;
-						$strErrorCode = 1;
-						$strErrorDesc = 'Could not create asset preview. Check logs.';
+					// Do not trust $_FILES['file']['mime'] value - check MIME type manually
+					$finfo = new finfo(FILEINFO_MIME_TYPE);
+					if (false === $ext = array_search(
+						$finfo->file($input_file),
+						ALLOWED_MIME_TYPES,
+						true
+					)) {
+						$strErrorDesc = 'The file type is not supported ('.mime_content_type($input_file).')';
+						$this->sendOutput(json_encode(array('error' => -1,'description'=>$strErrorDesc)));
 					}
 					
-					if(!Utils::create_preview_image($stored_file,THUMBNAIL_PATH."/".$hashed_previewname,THUMBNAIL_SIZE)){
-						$errors = true;
-						$strErrorCode = 1;
-						$strErrorDesc = 'Could not add asset thumbnail. Check logs.';
+					// Suffix wasn't derived from detected mime type, bail out
+					if (!$ext){
+						$strErrorDesc = 'The file type is not supported';
+						$this->sendOutput(json_encode(array('error' => -1,'description'=>$strErrorDesc)));
 					}
+					
+					$mimetype = $finfo->file($input_file);
+					
+					// Create a unique name for the uploaded file
+					$original_filename = ($isurl) ? $tmp_file_name : $_FILES['file']['name'];
+					$hashed_basename = date('Ymd') . '_' . md5($original_filename . microtime());
+					//$hashed_filename = $hashed_basename.".".$ext;
+					
+					$hashed_filename = ($stated_ext == "ai") ? $hashed_basename.".ai" : $hashed_basename.".".$ext;
+					
+					$hashed_previewname = $hashed_basename.".jpg"; // Previews are always jpg
+					
+					// Store the file in the filesystem with the new hashed filename
+					if ($isurl){
+						if (!rename($input_file,ASSET_PATH."/".$hashed_filename)){
+							$this->sendOutput(json_encode(array('error' => -1,'description'=>"Could not copy file")));
+						}
+					} else {
+						if (!move_uploaded_file($input_file,ASSET_PATH."/".$hashed_filename)) {
+							$this->sendOutput(json_encode(array('error' => -1,'description'=>"Could not move uploaded file")));
+						}
+					}
+					
+					// At this point our file should be in-site, create a handle for it
+					$stored_file = ASSET_PATH."/".$hashed_filename;
+					
+					// Create thumbnail and preview - only if the input is an image format (jpg, gif, png, bmp, pdf (and ai as pdf))
+					$type = explode('/', $mimetype)[0];
+					if (ENABLE_PREVIEW_GENERATION && in_array($ext,SUPPORTED_IMAGE_PREVIEW_TYPES)){
+					
+						if(!Utils::create_preview_image($stored_file,PREVIEW_PATH."/".$hashed_previewname,PREVIEW_SIZE)){
+							$errors = true;
+							$strErrorCode = 1;
+							$strErrorDesc = 'Could not create asset preview. Check logs.';
+						}
+						
+						if(!Utils::create_preview_image($stored_file,THUMBNAIL_PATH."/".$hashed_previewname,THUMBNAIL_SIZE)){
+							$errors = true;
+							$strErrorCode = 1;
+							$strErrorDesc = 'Could not add asset thumbnail. Check logs.';
+						}
+					}	
 				}
 
 				// Check if metadata has been posted
@@ -1009,58 +879,82 @@ class AssetController extends ApiBaseController
 					} else {
 						$metadata_ary = json_decode($metadata,true);
 						// Force essential metadata fields such as filename, extension and mimetype with derived values
-						$metadata_ary["filename"] = $original_filename;
-						$metadata_ary["extension"] = $ext;
-						$metadata_ary["mimetype"] = $mimetype;
-						$metadata_ary["filesize"] = filesize($stored_file);
-						$metadata_ary["fullwidth"] = NULL;
-						$metadata_ary["fullheight"] = NULL;	
-						$metadata_ary["previewwidth"] = NULL;
-						$metadata_ary["previewheight"] = NULL;
+						if ($isurl || $isupload){
+							$metadata_ary["filename"] = $original_filename;
+							$metadata_ary["extension"] = $ext;
+							$metadata_ary["mimetype"] = $mimetype;
+							$metadata_ary["filesize"] = filesize($stored_file);
+							$metadata_ary["fullwidth"] = NULL;
+							$metadata_ary["fullheight"] = NULL;	
+							$metadata_ary["previewwidth"] = NULL;
+							$metadata_ary["previewheight"] = NULL;
+						} else {
+							// Overwrite essential metadata fields such as filename, extension and mimetype with empty values
+							$metadata_ary["filename"] = NULL;
+							$metadata_ary["extension"] = NULL;
+							$metadata_ary["mimetype"] = NULL;
+							$metadata_ary["filesize"] = 0;
+						}
 					}
                 } else {				
-					// Construct metadata manually
-					$metadata_ary = array(
-						"filename"=>$original_filename,
-						"extension"=>($stated_ext == "ai") ? $stated_ext : $ext,
-						"mimetype"=>$mimetype,
-						"filesize"=>filesize($stored_file),
-						"fullwidth"=>NULL,
-						"fullheight"=>NULL,
-						"previewwidth"=>NULL,
-						"previewheight"=>NULL
-					);
+					// Construct metadata manually (with file)
+					if ($isurl || $isupload){
+						$metadata_ary = array(
+							"filename"=>$original_filename,
+							"extension"=>($stated_ext == "ai") ? $stated_ext : $ext,
+							"mimetype"=>$mimetype,
+							"filesize"=>filesize($stored_file),
+							"fullwidth"=>NULL,
+							"fullheight"=>NULL,
+							"previewwidth"=>NULL,
+							"previewheight"=>NULL
+						);
+					} else {
+						// Construct metadata manually (no file)
+						$metadata_ary = array(
+							"filename"=>NULL,
+							"extension"=>NULL,
+							"mimetype"=>NULL,
+							"filesize"=>0,
+							"fullwidth"=>NULL,
+							"fullheight"=>NULL,
+							"previewwidth"=>NULL,
+							"previewheight"=>NULL
+						);
+					}
 				}
 				
 				// If upload is an image, get its EXIF data, detect its dimensions and overwrite corresponding metadata values
-				$hasexif = false;
-				if (in_array($ext,SUPPORTED_IMAGE_PREVIEW_TYPES)){
-					// Check for and extract EXIF data if present and enabled in settings
-					if (EXTRACT_UPLOADED_EXIF_DATA){
-						$exif = @exif_read_data($stored_file, 'IFD0', true);
-						if ($exif){
-							foreach($exif as $key=>$value){
-								if (!in_array($key,EXIF_DATA_TO_KEEP)){
-									unset($exif[$key]);
+				if ($isurl || $isupload){
+					$hasexif = false;
+					if (in_array($ext,SUPPORTED_IMAGE_PREVIEW_TYPES)){
+						// Check for and extract EXIF data if present and enabled in settings
+						if (EXTRACT_UPLOADED_EXIF_DATA){
+							$exif = @exif_read_data($stored_file, 'IFD0', true);
+							if ($exif){
+								foreach($exif as $key=>$value){
+									if (!in_array($key,EXIF_DATA_TO_KEEP)){
+										unset($exif[$key]);
+									}
 								}
+								// Encode to JSON string to tighten up and get rid of rogue characters
+								$exif_json = json_encode($exif);	
+								$exif_clean = str_replace("\\u0000", "", $exif_json);
+								// Convert back into the metadata exif array for storage
+								$hasexif = true;
+								$exif_ary = json_decode($exif_clean,true);							
 							}
-							// Encode to JSON string to tighten up and get rid of rogue characters
-							$exif_json = json_encode($exif);	
-							$exif_clean = str_replace("\\u0000", "", $exif_json);
-							// Convert back into the metadata exif array for storage
-							$hasexif = true;
-							$exif_ary = json_decode($exif_clean,true);							
 						}
-					}
-					if ($type == "image"){
-						$sizedata = getimagesize($stored_file);
-						$metadata_ary["fullwidth"] = $sizedata[0];
-						$metadata_ary["fullheight"] = $sizedata[1];
-					}
-					if (file_exists(PREVIEW_PATH."/".$hashed_previewname) && is_file(PREVIEW_PATH."/".$hashed_previewname)){
-						$thumbdata = getimagesize(PREVIEW_PATH."/".$hashed_previewname);
-						$metadata_ary["previewwidth"] = $thumbdata[0];
-						$metadata_ary["previewheight"] = $thumbdata[1];
+						if ($type == "image"){
+							$sizedata = getimagesize($stored_file);
+							$metadata_ary["fullwidth"] = $sizedata[0];
+							$metadata_ary["fullheight"] = $sizedata[1];
+						}
+						if (file_exists(PREVIEW_PATH."/".$hashed_previewname) && is_file(PREVIEW_PATH."/".$hashed_previewname)){
+							$thumbdata = getimagesize(PREVIEW_PATH."/".$hashed_previewname);
+							$metadata_ary["previewwidth"] = $thumbdata[0];
+							$metadata_ary["previewheight"] = $thumbdata[1];
+						}
 					}
 				}
 				
@@ -1117,10 +1011,16 @@ class AssetController extends ApiBaseController
 				} else {
 					$assetid = $result;
 					// Do not expose the actual asset id via the API response
-					$data["assetid"] = sha1($result);
-					
+					$data["assetid"] = sha1(time()."_".$result); // this should be unique!
+					if ($isurl || $isupload){
+						$data["filename"] = $original_filename;
+						$data["filesize"] = filesize($stored_file);
+					}
+					// Add metadata (POSTed or autogenerated)
+					//$data["metadata"] = $metadata; // this is already JSON-encoded!
+					$data["metadata"] = $metadata_ary;
 					// We now need to update the publicassetid (hash), derived from the assetid of the inserted record
-					$result2 = $model->updatePublicAssetID($assetid);
+					$result2 = $model->updatePublicAssetID($assetid,$data["assetid"]);
 				}
 			} catch (Error $e) {
 				$strErrorCode = -1;
@@ -1134,11 +1034,6 @@ class AssetController extends ApiBaseController
         }
 		
 		if (!$strErrorDesc) {
-		
-			// Audit
-			$eventmodel = new EventModel();
-			$eventdetails = $calling_username . " uploaded $original_filename";
-			$audit = $eventmodel->addEvent(15,$calling_userid,$eventdetails);
 			
             $this->sendOutput(
 				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data),JSON_UNESCAPED_SLASHES),
@@ -1515,7 +1410,7 @@ class AssetController extends ApiBaseController
 				$metadata_ary["extensions"] = $extensions;
 
 				// Convert back to JSON string for database storage
-				$metadata = json_encode($metadata_ary);
+				//$metadata = json_encode($metadata_ary);
 				
 				// Perform the update	
 				$result = $assetmodel->updateAsset($id,$hashed_basename,$metadata);
@@ -1525,9 +1420,15 @@ class AssetController extends ApiBaseController
 					$strErrorCode = -1;
 					$strErrorDesc = 'Could not update asset. Check logs.';
 				} else {
-					$assetid = $asset["assetid"];
+					$assetid = $asset["assetid"]; // table index/primary key
 					// Do not expose the actual asset id via the API response
-					$data["assetid"] = sha1($assetid);
+					$data["assetid"] = $asset["publicassetid"];
+					if ($replacing_file){
+						$data["filename"] = $original_filename;
+						$data["filesize"] = filesize($stored_file);
+					}
+					// Add metadata (POSTed or autogenerated)
+					$data["metadata"] = $metadata_ary;
 				}
 			} catch (Error $e) {
 				$strErrorCode = -1;
@@ -1541,10 +1442,6 @@ class AssetController extends ApiBaseController
         }
 		
 		if (!$strErrorDesc) {
-			// Audit
-			$eventmodel = new EventModel();
-			$eventdetails = $calling_username . " updated asset id: ".$assetid;
-			$audit = $eventmodel->addEvent(16,$calling_userid,$eventdetails);
 			
             $this->sendOutput(
 				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data),JSON_UNESCAPED_SLASHES),
@@ -1623,10 +1520,6 @@ class AssetController extends ApiBaseController
         }
 		
 		if (!$strErrorDesc) {;
-			// Audit
-			$eventmodel = new EventModel();
-			$eventdetails = $calling_username . " deleted asset id: ".$assetid;
-			$audit = $eventmodel->addEvent(17,$calling_userid,$eventdetails);
 			
             $this->sendOutput(
 				json_encode(array('error' => $strErrorCode,'description'=>'success','data'=>$data)),
@@ -1703,111 +1596,117 @@ class AssetController extends ApiBaseController
 								ALLOWED_MIME_TYPES,
 								true
 							)) {
+								$errors = true;
+								$strErrorCode = 1;
 								$strErrorDesc = 'The file type is not supported ('.mime_content_type($filename).')';
-								$this->sendOutput(json_encode(array('error' => -1,'description'=>$strErrorDesc)));
+								//$this->sendOutput(json_encode(array('error' => -1,'description'=>$strErrorDesc)));
 							}
 							
 							// Suffix wasn't derived from detected mime type, bail out
 							if (!$ext){
-								$strErrorDesc = 'The file type is not supported';
-								$this->sendOutput(json_encode(array('error' => -1,'description'=>$strErrorDesc)));
-							}	
-							$mimetype = $finfo->file($filename);
-							
-														
-							// Create a unique name for the imported file
-							$original_filename = basename($filename);
-							$hashed_basename = date('Ymd') . '_' . md5($original_filename . microtime());
-							$hashed_filename = $hashed_basename.".".$ext;
-							$hashed_previewname = $hashed_basename.".jpg";
-							$datecreated = date("Y-m-d H:i:s");
-							$filesize = filesize($filename);
-							$metadata = NULL;
-							
-							// Create thumbnail and preview - only if the input is an image format (jpg, gif, png, bmp)
-							$type = explode('/', $mimetype)[0];
-							
-							if (ENABLE_PREVIEW_GENERATION && in_array($ext,SUPPORTED_IMAGE_PREVIEW_TYPES)){
-							
-								if(!Utils::create_preview_image($filename,PREVIEW_PATH."/".$hashed_previewname,PREVIEW_SIZE)){
-									$errors = true;
-									$strErrorCode = 1;
-									$strErrorDesc = 'Could not create asset preview. Check logs.';
-								}
-								
-								if(!Utils::create_preview_image($filename,THUMBNAIL_PATH."/".$hashed_previewname,THUMBNAIL_SIZE)){
-									$errors = true;
-									$strErrorCode = 1;
-									$strErrorDesc = 'Could not add asset thumbnail. Check logs.';
-								}
+								$errors = true;
+								$strErrorCode = 1;
+								$strErrorDesc = 'The file type is not supported ('.basename($filename).')';
+								//$this->sendOutput(json_encode(array('error' => -1,'description'=>$strErrorDesc)));
 							}
 							
-							// Build metadata stub
-							$metadata_ary = array(
-								"filename"=>$original_filename,
-								"extension"=>$ext,
-								"mimetype"=>$mimetype,
-								"filesize"=>$filesize,
-								"fullwidth"=>NULL,
-								"fullheight"=>NULL,
-								"previewwidth"=>NULL,
-								"previewheight"=>NULL
-							);
-							
-							// If upload is an image, get its EXIF data, detect its dimensions and overwrite corresponding metadata values
-							$hasexif = false;
-							if (in_array($ext,SUPPORTED_IMAGE_PREVIEW_TYPES)){
-								// Check for and extract EXIF data if present and enabled in settings
-								if (EXTRACT_UPLOADED_EXIF_DATA){
-									$exif = @exif_read_data($filename, 'IFD0', true);
-									if ($exif){
-										foreach($exif as $key=>$value){
-											if (!in_array($key,EXIF_DATA_TO_KEEP)){
-												unset($exif[$key]);
-											}
-										}
-										// Encode to JSON string to tighten up and get rid of rogue characters
-										$exif_json = json_encode($exif);	
-										$exif_clean = str_replace("\\u0000", "", $exif_json);
-										// Convert back into the metadata exif array for storage
-										$hasexif = true;
-										$exif_ary = json_decode($exif_clean,true);										
+							if (!$errors){
+								$mimetype = $finfo->file($filename);
+															
+								// Create a unique name for the imported file
+								$original_filename = basename($filename);
+								$hashed_basename = date('Ymd') . '_' . md5($original_filename . microtime());
+								$hashed_filename = $hashed_basename.".".$ext;
+								$hashed_previewname = $hashed_basename.".jpg";
+								$datecreated = date("Y-m-d H:i:s");
+								$filesize = filesize($filename);
+								$metadata = NULL;
+								
+								// Create thumbnail and preview - only if the input is an image format (jpg, gif, png, bmp)
+								$type = explode('/', $mimetype)[0];
+								
+								if (ENABLE_PREVIEW_GENERATION && in_array($ext,SUPPORTED_IMAGE_PREVIEW_TYPES)){
+								
+									if(!Utils::create_preview_image($filename,PREVIEW_PATH."/".$hashed_previewname,PREVIEW_SIZE)){
+										$errors = true;
+										$strErrorCode = 1;
+										$strErrorDesc = 'Could not create asset preview. Check logs.';
+									}
+									
+									if(!Utils::create_preview_image($filename,THUMBNAIL_PATH."/".$hashed_previewname,THUMBNAIL_SIZE)){
+										$errors = true;
+										$strErrorCode = 1;
+										$strErrorDesc = 'Could not add asset thumbnail. Check logs.';
 									}
 								}
-								if ($type == "image"){
-									$sizedata = getimagesize($filename);
-									$metadata_ary["fullwidth"] = $sizedata[0];
-									$metadata_ary["fullheight"] = $sizedata[1];
+								
+								// Build metadata stub
+								$metadata_ary = array(
+									"filename"=>$original_filename,
+									"extension"=>$ext,
+									"mimetype"=>$mimetype,
+									"filesize"=>$filesize,
+									"fullwidth"=>NULL,
+									"fullheight"=>NULL,
+									"previewwidth"=>NULL,
+									"previewheight"=>NULL
+								);
+								
+								// If upload is an image, get its EXIF data, detect its dimensions and overwrite corresponding metadata values
+								$hasexif = false;
+								if (in_array($ext,SUPPORTED_IMAGE_PREVIEW_TYPES)){
+									// Check for and extract EXIF data if present and enabled in settings
+									if (EXTRACT_UPLOADED_EXIF_DATA){
+										$exif = @exif_read_data($filename, 'IFD0', true);
+										if ($exif){
+											foreach($exif as $key=>$value){
+												if (!in_array($key,EXIF_DATA_TO_KEEP)){
+													unset($exif[$key]);
+												}
+											}
+											// Encode to JSON string to tighten up and get rid of rogue characters
+											$exif_json = json_encode($exif);	
+											$exif_clean = str_replace("\\u0000", "", $exif_json);
+											// Convert back into the metadata exif array for storage
+											$hasexif = true;
+											$exif_ary = json_decode($exif_clean,true);										
+										}
+									}
+									if ($type == "image"){
+										$sizedata = getimagesize($filename);
+										$metadata_ary["fullwidth"] = $sizedata[0];
+										$metadata_ary["fullheight"] = $sizedata[1];
+									}
+									if (file_exists(PREVIEW_PATH."/".$hashed_previewname) && is_file(PREVIEW_PATH."/".$hashed_previewname)){
+										$thumbdata = getimagesize(PREVIEW_PATH."/".$hashed_previewname);
+										$metadata_ary["previewwidth"] = $thumbdata[0];
+										$metadata_ary["previewheight"] = $thumbdata[1];
+									}
 								}
-								if (file_exists(PREVIEW_PATH."/".$hashed_previewname) && is_file(PREVIEW_PATH."/".$hashed_previewname)){
-									$thumbdata = getimagesize(PREVIEW_PATH."/".$hashed_previewname);
-									$metadata_ary["previewwidth"] = $thumbdata[0];
-									$metadata_ary["previewheight"] = $thumbdata[1];
+								
+								// Additional metadata extensions etc.
+								$extensions = new stdClass;
+								$extensions->simpledam = new stdClass;
+								$extensions->simpledam = new stdClass;
+								$extensions->simpledam->description = "Default description here";
+								// Add default values to SimpleDAM metadata extension
+								$extensions->simpledam->uploader = $calling_username;
+								$extensions->simpledam->views = 0;
+								$extensions->simpledam->downloads = 0;
+								
+								// Add EXIF data to extensions
+								if ($hasexif){
+									unset($metadata_ary["exif"]);
+									$extensions->exif = new stdClass;
+									$extensions->exif = (object) $exif_ary;
 								}
+								
+								// Add the whole extensions node back into the metadata array
+								$metadata_ary["extensions"] = $extensions;
+				
+								// Convert to JSON string for database storage
+								$metadata = json_encode($metadata_ary);
 							}
-							
-							// Additional metadata extensions etc.
-							$extensions = new stdClass;
-							$extensions->simpledam = new stdClass;
-							$extensions->simpledam = new stdClass;
-							$extensions->simpledam->description = "Default description here";
-							// Add default values to SimpleDAM metadata extension
-							$extensions->simpledam->uploader = $calling_username;
-							$extensions->simpledam->views = 0;
-							$extensions->simpledam->downloads = 0;
-							
-							// Add EXIF data to extensions
-							if ($hasexif){
-								unset($metadata_ary["exif"]);
-								$extensions->exif = new stdClass;
-								$extensions->exif = (object) $exif_ary;
-							}
-							
-							// Add the whole extensions node back into the metadata array
-							$metadata_ary["extensions"] = $extensions;
-			
-							// Convert to JSON string for database storage
-							$metadata = json_encode($metadata_ary);
 		
 							// If no errors, move file and add to database
 							if (!$errors){
@@ -1821,18 +1720,14 @@ class AssetController extends ApiBaseController
 									Utils::debug("Could not insert imported asset into database (".basename($filename).")");
 								} else {
 									// Successful import here
-									$assetid = $result;									
+									$assetid = $result;	
+									$publicassetid = sha1(time()."_".$result);							
 									// We now need to update the publicassetid (hash), derived from the assetid of the inserted record
-									$result2 = $model->updatePublicAssetID($assetid);
+									$result2 = $model->updatePublicAssetID($assetid,$publicassetid);
 									
 									// Update import stats
 									$data["numimported"] += 1;
-									$data["imported"][] = array("assetid"=>$assetid,"filename"=>basename($filename));
-									
-									// Audit
-									$eventmodel = new EventModel();
-									$eventdetails = $calling_username." imported local asset ".basename($filename)." (id: $assetid)";
-									$audit = $eventmodel->addEvent(11,$calling_userid,$eventdetails);
+									$data["imported"][] = array("assetid"=>$publicassetid,"filename"=>basename($filename));
 									
 									// Move original file from import to original file
 									rename($filename, ASSET_PATH."/".$hashed_filename);
@@ -1845,7 +1740,7 @@ class AssetController extends ApiBaseController
 								$data["failed"][] = basename($filename);
 								Utils::debug("Could not import asset (".basename($filename).")");
 							}
-						}
+						} // END foreach
 						if (!$errors || $strErrorCode == 0){
 							$strErrorDesc = 'The import was successfully completed';
 						}
@@ -1990,7 +1885,7 @@ class AssetController extends ApiBaseController
 				
 				// Audit
 				$eventdetails = $calling_username." exported assets";
-				$audit = $eventmodel->addEvent(10,$calling_userid,$eventdetails);		
+				$audit = $eventmodel->addEvent(10,$calling_userid,$eventdetails,NULL,"Export file downloaded ($filename)");		
 				$strErrorDesc = 'success';
 				// Exit - we don't want to send an API response on successful export (the payload is the file)
 				exit();

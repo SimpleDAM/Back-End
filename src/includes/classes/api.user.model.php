@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -167,7 +167,7 @@ class UserModel extends Database
     {
 		$params = [];
 		$params[] = [":sessiontoken", $sessiontoken];
-		$validsession = time() - SESSION_DURATION; // From api global settings	
+		$validsession = time() - SESSION_DURATION; // from api global settings	
 		
         return $this->select("SELECT ".SESSIONS.".*, firstname, lastname, userroleid FROM ".SESSIONS." LEFT JOIN ".USERS." ON ".SESSIONS.".userid = ".USERS.".userid WHERE sessiontoken = :sessiontoken AND sessiontimestamp > $validsession", $params);
     }

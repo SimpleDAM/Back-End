@@ -2,7 +2,7 @@
 /*
 This software is released under the BSD-3-Clause License
 
-Copyright 2022 Daydream Interactive Limited
+Copyright 2025 Daydream Interactive Limited
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -44,7 +44,11 @@ class EventTypeModel extends Database
         return $this->select("SELECT eventtypeid, eventtypename FROM ".EVENT_TYPES." WHERE eventtypeid = :eventtypeid AND isdeleted = 0", [":eventtypeid", $eventtypeid]);
     }
 
-
+	public function getEventTypeIDFromName($eventtypename)
+    {
+        return $this->select("SELECT eventtypeid FROM ".EVENT_TYPES." WHERE eventtypename = :eventtypename AND isdeleted = 0", [":eventtypename", $eventtypename]);
+    }
+	
 	public function addEventType($eventtypename)
     {
 		$params = [];
