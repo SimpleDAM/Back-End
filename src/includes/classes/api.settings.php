@@ -114,7 +114,7 @@ define("ALLOWED_MIME_TYPES",array(
 define("ENABLE_PREVIEW_GENERATION",true);
 
 // Formats that support creating image-based previews (using GD, ImageMagick or FFMPEG)
-define("SUPPORTED_IMAGE_PREVIEW_TYPES",array("jpg","png","gif","bmp","xbm","webp","wbmp","psd","pdf","mp4","ai"));
+define("SUPPORTED_IMAGE_PREVIEW_TYPES",array("jpg","png","gif","bmp","xbm","webp","wbmp","psd","pdf","ai"));
 
 // Formats that can be viewed in a browser (without ImageMagick or FFMPEG)
 define("SUPPORTED_BROWSER_TYPES",array("jpg","png","gif","bmp","xbm","webp","wbmp","mp3","m4a","mp4","ogg","pdf","txt","json"));

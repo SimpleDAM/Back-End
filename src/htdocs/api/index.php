@@ -56,7 +56,13 @@ $allowed_actions = array("get","list","add","update","delete","login","logout","
 // Enumerate /entity/action from URL (URLS are rewritten by the .htaccess file in htdocs/webroot)
 $params = [];
 foreach($_GET as $key=>$val){
-	$params[$key] = stripslashes(strip_tags($val));
+	if (is_array($val)){
+		$params[$key] = array_map(function($item) {
+			return stripslashes(strip_tags($item));
+		}, $val);
+	} else {
+		$params[$key] = stripslashes(strip_tags($val));
+	}
 }
 
 // Instantiate API base controller

@@ -121,9 +121,13 @@ class ApiBaseController
 		
 		// Get user for event audit
 		$usermodel = new UserModel();
-		$user = $usermodel->getUserFromSession($api_params['sessiontoken']);
-		$calling_userid = $user[0]['userid'];
-		$calling_username = $user[0]['fullname'];
+		if ($_GET['action'] == "login"){
+			// Do nothing
+		} else {
+			$user = $usermodel->getUserFromSession($api_params['sessiontoken']);
+			$calling_userid = $user[0]['userid'];
+			$calling_username = $user[0]['fullname'];
+		}
 		
 		// Values for the audit trail
 		$model = new EventTypeModel();
